@@ -31,6 +31,9 @@ env:
 licenses:
     - android-sdk-license-5be876d5
 
+before_install:
+   - pip install --user codecov
+
 # Create and start the emulator
 before_script:
    - echo no | android create avd --force -n test -t $ANDROID_TARGET  --abi armeabi-v7a -c 128M
@@ -48,3 +51,8 @@ script:
    - ./gradlew :libs:SalesforceReact:assembleDebug
    - travis_wait 30 ./gradlew :native:NativeSampleApps:RestExplorer:connectedAndroidTest
    - travis_wait 30 ./gradlew :native:TemplateApp:connectedAndroidTest
+
+#collect test report and code coverage
+after_success:
+   - ./gradlew jacocoFullReport
+   - codecov

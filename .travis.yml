@@ -44,7 +44,7 @@ before_script:
 script:
    - travis_wait 30 ./gradlew :libs:SalesforceSDK:connectedAndroidTest
    - travis_wait 30 ./gradlew :libs:SmartStore:connectedAndroidTest
-   - travis_wait 30 ./gradlew :libs:SmartSync:connectedAndroidTest
+   - if ($ANDROID_TARGE == "android-22") travis_wait 30 ./gradlew :libs:SmartSync:connectedAndroidTest
    # disable this test to reduce the impact for other tests
    # will add it back once fix the test issue
    # - travis_wait 30 ./gradlew :libs:SalesforceHybrid:connectedAndroidTest

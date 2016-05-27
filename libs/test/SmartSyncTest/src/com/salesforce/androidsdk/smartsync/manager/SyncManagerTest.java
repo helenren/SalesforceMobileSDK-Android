@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, salesforce.com, inc.
+ * Copyright (c) 2014-2016, salesforce.com, inc.
  * All rights reserved.
  * Redistribution and use of this software in source and binary forms, with or
  * without modification, are permitted provided that the following conditions
@@ -35,8 +35,12 @@ import com.salesforce.androidsdk.smartstore.store.IndexSpec;
 import com.salesforce.androidsdk.smartstore.store.QuerySpec;
 import com.salesforce.androidsdk.smartstore.store.SmartStore;
 import com.salesforce.androidsdk.smartsync.util.Constants;
+import com.salesforce.androidsdk.smartsync.util.MruSyncDownTarget;
 import com.salesforce.androidsdk.smartsync.util.SOQLBuilder;
+import com.salesforce.androidsdk.smartsync.util.SOSLBuilder;
+import com.salesforce.androidsdk.smartsync.util.SOSLReturningBuilder;
 import com.salesforce.androidsdk.smartsync.util.SoqlSyncDownTarget;
+import com.salesforce.androidsdk.smartsync.util.SoslSyncDownTarget;
 import com.salesforce.androidsdk.smartsync.util.SyncDownTarget;
 import com.salesforce.androidsdk.smartsync.util.SyncOptions;
 import com.salesforce.androidsdk.smartsync.util.SyncState;
@@ -51,6 +55,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -710,6 +715,9 @@ public class SyncManagerTest extends ManagerTestCase {
         while (!queue.getNextSyncUpdate().isDone());
     }
 
+    /**
+     * Tests if missing fields are added to a SOQL target.
+     */
     public void testAddMissingFieldsToSOQLTarget() throws Exception {
         final String soqlQueryWithSpecialFields = SOQLBuilder.getInstanceWithFields("Id, LastModifiedDate, FirstName, LastName")
                 .from(Constants.CONTACT).limit(10).build();
@@ -720,29 +728,152 @@ public class SyncManagerTest extends ManagerTestCase {
         assertEquals("SOQL query should contain Id and LastModifiedDate fields", soqlQueryWithSpecialFields, targetSoqlQuery);
     }
 
+    /**
+     * Tests if ghost records are cleaned locally for a SOQL target.
+     */
+    public void testCleanResyncGhostsForSOQLTarget() throws Exception {
+
+        // Creates 3 accounts on the server.
+        final Map<String, String> accounts = createAccountsOnServer(3);
+        assertEquals("3 accounts should have been created", accounts.size(), 3);
+        final Set<String> keySet = accounts.keySet();
+        final String[] accountIds = new String[3];
+        keySet.toArray(accountIds);
+        final String soupName = "Accounts";
+        createAccountsSoup(soupName);
+
+        // Builds SOQL sync down target and performs initial sync.
+        final String soql = "SELECT Id, Name FROM Account WHERE Id IN ('" + accountIds[0] + "', '" + accountIds[1] + "', '" + accountIds[2] + "')";
+        long syncId = trySyncDown(MergeMode.LEAVE_IF_CHANGED, new SoqlSyncDownTarget(soql), accounts, soupName);
+        int numRecords = smartStore.countQuery(QuerySpec.buildAllQuerySpec(soupName, "Id", QuerySpec.Order.ascending, 10));
+        assertEquals("3 accounts should be stored in the soup", numRecords, 3);
+
+        // Deletes 1 account on the server and verifies the ghost record is cleared from the soup.
+        deleteAccountsOnServer(new String[]{accountIds[0]});
+        syncManager.cleanResyncGhosts(syncId);
+        numRecords = smartStore.countQuery(QuerySpec.buildAllQuerySpec(soupName, "Id", QuerySpec.Order.ascending, 10));
+        assertEquals("2 accounts should be stored in the soup", numRecords, 2);
+
+        // Deletes the remaining accounts on the server.
+        deleteAccountsOnServer(new String[]{accountIds[1], accountIds[2]});
+        dropAccountsSoup(soupName);
+        deleteSyncs();
+    }
+
+    /**
+     * Tests if ghost records are cleaned locally for a MRU target.
+     */
+    public void testCleanResyncGhostsForMRUTarget() throws Exception {
+
+        // Creates 3 accounts on the server.
+        final Map<String, String> accounts = createAccountsOnServer(3);
+        assertEquals("3 accounts should have been created", accounts.size(), 3);
+        final Set<String> keySet = accounts.keySet();
+        final String[] accountIds = new String[3];
+        keySet.toArray(accountIds);
+        final String soupName = "Accounts";
+        createAccountsSoup(soupName);
+
+        // Builds MRU sync down target and performs initial sync.
+        final List<String> fieldList = new ArrayList<String>();
+        fieldList.add("Id");
+        fieldList.add("Name");
+        long syncId = trySyncDown(MergeMode.LEAVE_IF_CHANGED, new MruSyncDownTarget(fieldList, Constants.ACCOUNT), soupName);
+        int preNumRecords = smartStore.countQuery(QuerySpec.buildAllQuerySpec(soupName, "Id", QuerySpec.Order.ascending, 10));
+        assertTrue("At least 1 account should be stored in the soup", preNumRecords > 0);
+
+        // Deletes 1 account on the server and verifies the ghost record is cleared from the soup.
+        deleteAccountsOnServer(new String[]{accountIds[0]});
+        syncManager.cleanResyncGhosts(syncId);
+        int postNumRecords = smartStore.countQuery(QuerySpec.buildAllQuerySpec(soupName, "Id", QuerySpec.Order.ascending, 10));
+        assertEquals("1 less account should be stored in the soup", postNumRecords, preNumRecords - 1);
+
+        // Deletes the remaining accounts on the server.
+        deleteAccountsOnServer(new String[]{accountIds[1], accountIds[2]});
+        dropAccountsSoup(soupName);
+        deleteSyncs();
+    }
+
+    /**
+     * Tests if ghost records are cleaned locally for a SOSL target.
+     */
+    public void testCleanResyncGhostsForSOSLTarget() throws Exception {
+
+        // Creates 1 account on the server.
+        final Map<String, String> accounts = createAccountsOnServer(1);
+        assertEquals("1 account should have been created", accounts.size(), 1);
+        final Set<String> keySet = accounts.keySet();
+        final String[] accountIds = new String[1];
+        keySet.toArray(accountIds);
+        final String soupName = "Accounts";
+        createAccountsSoup(soupName);
+
+        // Builds SOSL sync down target and performs initial sync.
+        final SOSLBuilder soslBuilder = SOSLBuilder.getInstanceWithSearchTerm(accounts.get(accountIds[0]));
+        final SOSLReturningBuilder returningBuilder = SOSLReturningBuilder.getInstanceWithObjectName(Constants.ACCOUNT);
+        returningBuilder.fields("Id, Name");
+        final String sosl = soslBuilder.returning(returningBuilder).searchGroup("NAME FIELDS").build();
+        long syncId = trySyncDown(MergeMode.LEAVE_IF_CHANGED, new SoslSyncDownTarget(sosl), soupName);
+        int numRecords = smartStore.countQuery(QuerySpec.buildAllQuerySpec(soupName, "Id", QuerySpec.Order.ascending, 10));
+        assertEquals("1 account should be stored in the soup", numRecords, 1);
+
+        // Deletes 1 account on the server and verifies the ghost record is cleared from the soup.
+        deleteAccountsOnServer(new String[]{accountIds[0]});
+        syncManager.cleanResyncGhosts(syncId);
+        numRecords = smartStore.countQuery(QuerySpec.buildAllQuerySpec(soupName, "Id", QuerySpec.Order.ascending, 10));
+        assertEquals("No accounts should be stored in the soup", numRecords, 0);
+
+        // Deletes the remaining accounts on the server.
+        deleteAccountsOnServer(new String[]{accountIds[0]});
+        dropAccountsSoup(soupName);
+        deleteSyncs();
+    }
+
 	/**
 	 * Sync down helper
 	 * @throws JSONException
      * @param mergeMode
 	 */
 	private long trySyncDown(MergeMode mergeMode) throws JSONException {
-		// Create sync
-		SyncDownTarget target = new SoqlSyncDownTarget("SELECT Id, Name, LastModifiedDate FROM Account WHERE Id IN " + makeInClause(idToNames.keySet()));
-        SyncOptions options = SyncOptions.optionsForSyncDown(mergeMode);
-		SyncState sync = SyncState.createSyncDown(smartStore, target, options, ACCOUNTS_SOUP);
-		long syncId = sync.getId();
-		checkStatus(sync, SyncState.Type.syncDown, syncId, target, options, SyncState.Status.NEW, 0, -1);
-		
-		// Run sync
-		SyncUpdateCallbackQueue queue = new SyncUpdateCallbackQueue();
-		syncManager.runSync(sync, queue);
+		final SyncDownTarget target = new SoqlSyncDownTarget("SELECT Id, Name, LastModifiedDate FROM Account WHERE Id IN " + makeInClause(idToNames.keySet()));
+        return trySyncDown(mergeMode, target, idToNames, ACCOUNTS_SOUP);
 
-		// Check status updates
-		checkStatus(queue.getNextSyncUpdate(), SyncState.Type.syncDown, syncId, target, options, SyncState.Status.RUNNING, 0, -1); // we get an update right away before getting records to sync
-		checkStatus(queue.getNextSyncUpdate(), SyncState.Type.syncDown, syncId, target, options, SyncState.Status.RUNNING, 0, idToNames.size());
-		checkStatus(queue.getNextSyncUpdate(), SyncState.Type.syncDown, syncId, target, options, SyncState.Status.DONE, 100, idToNames.size());
-        return syncId;
 	}
+
+    private long trySyncDown(MergeMode mergeMode, SyncDownTarget target, String soupName) throws JSONException {
+        return trySyncDown(mergeMode, target, null, soupName);
+    }
+
+    /**
+     * Sync down helper.
+     *
+     * @param mergeMode Merge mode.
+     * @param target Sync down target.
+     * @param idNamesMap ID to names map.
+     * @param soupName Soup name.
+     * @return Sync ID.
+     */
+    private long trySyncDown(MergeMode mergeMode, SyncDownTarget target, Map<String, String> idNamesMap, String soupName) throws JSONException {
+        final SyncOptions options = SyncOptions.optionsForSyncDown(mergeMode);
+        final SyncState sync = SyncState.createSyncDown(smartStore, target, options, soupName);
+        long syncId = sync.getId();
+        checkStatus(sync, SyncState.Type.syncDown, syncId, target, options, SyncState.Status.NEW, 0, -1);
+
+        // Runs sync.
+        final SyncUpdateCallbackQueue queue = new SyncUpdateCallbackQueue();
+        syncManager.runSync(sync, queue);
+
+        // Checks status updates.
+        checkStatus(queue.getNextSyncUpdate(), SyncState.Type.syncDown, syncId, target, options, SyncState.Status.RUNNING, 0, -1);
+        if (idNamesMap != null) {
+            checkStatus(queue.getNextSyncUpdate(), SyncState.Type.syncDown, syncId, target, options, SyncState.Status.RUNNING, 0, idNamesMap.size());
+            checkStatus(queue.getNextSyncUpdate(), SyncState.Type.syncDown, syncId, target, options, SyncState.Status.DONE, 100, idNamesMap.size());
+        } else {
+            checkStatus(queue.getNextSyncUpdate(), SyncState.Type.syncDown, syncId, target, options, SyncState.Status.RUNNING, 0);
+            checkStatus(queue.getNextSyncUpdate(), SyncState.Type.syncDown, syncId, target, options, SyncState.Status.DONE, 100);
+        }
+        return syncId;
+    }
 
     /**
      * Sync up helper
@@ -816,9 +947,15 @@ public class SyncManagerTest extends ManagerTestCase {
 		JSONTestHelper.assertSameJSON("Wrong options", (expectedOptions == null ? null : expectedOptions.asJSON()), (sync.getOptions() == null ? null : sync.getOptions().asJSON()));
 		assertEquals("Wrong status", expectedStatus, sync.getStatus());
 		assertEquals("Wrong progress", expectedProgress, sync.getProgress());
-		assertEquals("Wrong total size", expectedTotalSize, sync.getTotalSize());
+        if (expectedTotalSize != -2) {
+            assertEquals("Wrong total size", expectedTotalSize, sync.getTotalSize());
+        }
 	}
-	
+
+    private void checkStatus(SyncState sync, SyncState.Type expectedType, long expectedId, SyncTarget expectedTarget, SyncOptions expectedOptions, SyncState.Status expectedStatus, int expectedProgress) throws JSONException {
+        checkStatus(sync, expectedType, expectedId, expectedTarget, expectedOptions, expectedStatus, expectedProgress, -2);
+    }
+
 	/**
 	 * Helper methods to create "count" test accounts
 	 * @param count
@@ -827,13 +964,15 @@ public class SyncManagerTest extends ManagerTestCase {
 	 */
 	private Map<String, String> createAccountsOnServer(int count) throws Exception {
 		Map<String, String> idToNames = new HashMap<String, String>();
-		for (int i=0; i<count; i++) {
-			// Request
+		for (int i = 0; i < count; i++) {
+
+			// Request.
 			String name = createAccountName();
 			Map<String, Object> fields = new HashMap<String, Object>();
 			fields.put(Constants.NAME, name);
-			RestRequest request = RestRequest.getRequestForCreate(ApiVersionStrings.VERSION_NUMBER, Constants.ACCOUNT, fields);
-			// Response
+			RestRequest request = RestRequest.getRequestForCreate(ApiVersionStrings.getVersionNumber(targetContext), Constants.ACCOUNT, fields);
+
+			// Response.
 			RestResponse response = restClient.sendSync(request);
 			String id = response.asJSONObject().getString(LID);
 			idToNames.put(id, name);
@@ -848,12 +987,11 @@ public class SyncManagerTest extends ManagerTestCase {
 	 */
 	private void deleteAccountsOnServer(String[] ids) throws Exception {
 		for (String id : ids) {
-			RestRequest request = RestRequest.getRequestForDelete(ApiVersionStrings.VERSION_NUMBER, Constants.ACCOUNT, id);
+            RestRequest request = RestRequest.getRequestForDelete(ApiVersionStrings.getVersionNumber(targetContext), Constants.ACCOUNT, id);
 			restClient.sendSync(request);
 		}
 	}
 
-	
 	/**
 	 * @return account name of the form SyncManagerTest<random number left-padded to be 8 digits long>
 	 */
@@ -882,20 +1020,28 @@ public class SyncManagerTest extends ManagerTestCase {
 	 * Create soup for accounts
 	 */
 	private void createAccountsSoup() {
-    	final IndexSpec[] indexSpecs = {
-    			new IndexSpec(Constants.ID, SmartStore.Type.string),
-    			new IndexSpec(Constants.NAME, SmartStore.Type.string),
-    			new IndexSpec(SyncManager.LOCAL, SmartStore.Type.string)
-    	};    	
-    	smartStore.registerSoup(ACCOUNTS_SOUP, indexSpecs);
+        createAccountsSoup(ACCOUNTS_SOUP);
 	}
-	
+
+    private void createAccountsSoup(String soupName) {
+        final IndexSpec[] indexSpecs = {
+                new IndexSpec(Constants.ID, SmartStore.Type.string),
+                new IndexSpec(Constants.NAME, SmartStore.Type.string),
+                new IndexSpec(SyncManager.LOCAL, SmartStore.Type.string)
+        };
+        smartStore.registerSoup(soupName, indexSpecs);
+    }
+
 	/**
 	 * Drop soup for accounts
 	 */
 	private void dropAccountsSoup() {
-		smartStore.dropSoup(ACCOUNTS_SOUP);
+        dropAccountsSoup(ACCOUNTS_SOUP);
 	}
+
+    private void dropAccountsSoup(String soupName) {
+        smartStore.dropSoup(soupName);
+    }
 
 	/**
 	 * Delete all syncs in syncs_soup
@@ -957,7 +1103,7 @@ public class SyncManagerTest extends ManagerTestCase {
 
             Map<String, Object> fields = new HashMap<String, Object>();
             fields.put(Constants.NAME, updatedName);
-            RestRequest request = RestRequest.getRequestForUpdate(ApiVersionStrings.VERSION_NUMBER, Constants.ACCOUNT, id, fields);
+            RestRequest request = RestRequest.getRequestForUpdate(ApiVersionStrings.getVersionNumber(targetContext), Constants.ACCOUNT, id, fields);
             // Response
             RestResponse response = restClient.sendSync(request);
             assertTrue("Updated failed", response.isSuccess());
@@ -1038,7 +1184,7 @@ public class SyncManagerTest extends ManagerTestCase {
      */
     private void checkServer(Map<String, String> idToNames) throws IOException, JSONException {
         String soql = "SELECT Id, Name FROM Account WHERE Id IN " + makeInClause(idToNames.keySet());
-        RestRequest request = RestRequest.getRequestForQuery(ApiVersionStrings.VERSION_NUMBER, soql);
+        RestRequest request = RestRequest.getRequestForQuery(ApiVersionStrings.getVersionNumber(targetContext), soql);
         JSONObject idToNamesFromServer = new JSONObject();
         RestResponse response = restClient.sendSync(request);
         JSONArray records = response.asJSONObject().getJSONArray(RECORDS);
@@ -1056,7 +1202,7 @@ public class SyncManagerTest extends ManagerTestCase {
      */
     private void checkServerDeleted(String[] ids) throws IOException, JSONException {
         String soql = "SELECT Id, Name FROM Account WHERE Id IN " + makeInClause(ids);
-        RestRequest request = RestRequest.getRequestForQuery(ApiVersionStrings.VERSION_NUMBER, soql);
+        RestRequest request = RestRequest.getRequestForQuery(ApiVersionStrings.getVersionNumber(targetContext), soql);
         RestResponse response = restClient.sendSync(request);
         JSONArray records = response.asJSONObject().getJSONArray(RECORDS);
         assertEquals("No accounts should have been returned from server", 0, records.length());

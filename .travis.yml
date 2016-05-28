@@ -35,7 +35,7 @@ licenses:
 # Create and start the emulator
 before_script:
    - echo no | android create avd --force -n test -t $ANDROID_TARGET  --abi armeabi-v7a -c 128M
-   - emulator -avd test -no-skin -no-audio -no-window &
+   - emulator -avd test -no-audio &
    - android-wait-for-emulator
    - adb shell input keyevent 82
    - adb shell input keyevent 84
@@ -45,9 +45,9 @@ script:
    - travis_wait 30 ./gradlew :libs:SalesforceSDK:connectedAndroidTest
    - travis_wait 30 ./gradlew :libs:SmartStore:connectedAndroidTest
    - travis_wait 30 ./gradlew :libs:SmartSync:connectedAndroidTest
-   # disable this test to reduce the impact for other tests
+   # disable the test to reduce the impact for other tests, just build it
    # will add it back once fix the test issue
-   # - travis_wait 30 ./gradlew :libs:SalesforceHybrid:connectedAndroidTest
+   - travis_wait 30 ./gradlew :libs:SalesforceHybrid:assembleDebug
    - ./gradlew :libs:SalesforceReact:assembleDebug
    - travis_wait 30 ./gradlew :native:NativeSampleApps:RestExplorer:connectedAndroidTest
    - travis_wait 30 ./gradlew :native:TemplateApp:connectedAndroidTest

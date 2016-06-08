@@ -55,7 +55,7 @@ script:
    - travis_wait 30 ./gradlew :libs:SmartSync:connectedAndroidTest
    # disable the unreliable test to reduce the impact for other tests, just build it
    # will add it back once fix the test issue
-   - ./gradlew :libs:SalesforceHybrid:assembleDebug
+   - ./gradlew :libs:SalesforceHybrid:connectedAndroidTest
    - ./gradlew :libs:SalesforceReact:assembleDebug
    - travis_wait 30 ./gradlew :native:NativeSampleApps:RestExplorer:connectedAndroidTest
    - travis_wait 30 ./gradlew :native:TemplateApp:connectedAndroidTest

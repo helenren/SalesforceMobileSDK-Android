@@ -41,6 +41,11 @@ public class SmartStoreJSTest extends JSTestCase {
     }
 
     @Override
+    protected int getMaxRuntimeInSecondsForTest(String testName) {
+        return 30;
+    }
+
+    @Override
     public List<String> getTestNames() {
         return Arrays.asList(new String[] {
                 "testGetDatabaseSize",

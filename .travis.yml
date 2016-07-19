@@ -20,6 +20,8 @@ env:
    global:
       # install timeout in minutes
       - ADB_INSTALL_TIMEOUT=8
+      - JAVA_OPTS=-Xmx4096m
+
    matrix:
       # there is no difference between version 19 and 20 for phone and tablet platforms
       # add new value here if need to support new API version

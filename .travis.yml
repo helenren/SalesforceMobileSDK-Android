@@ -9,6 +9,8 @@ branches:
 android:
    components:
       - build-tools-23.0.1
+      - android-24
+      - sys-img-armeabi-v7a-android-24
       - android-23
       - sys-img-armeabi-v7a-android-23
       - android-22
@@ -26,8 +28,8 @@ env:
       - ANDROID_TARGET=android-19
       - ANDROID_TARGET=android-21
       - ANDROID_TARGET=android-22
-      # block the run on this version for travis ci issue untill it is fixed
-      # - ANDROID_TARGET=android-23
+      - ANDROID_TARGET=android-23
+      - ANDROID_TARGET=android-24
 
 licenses:
     - android-sdk-license-5be876d5

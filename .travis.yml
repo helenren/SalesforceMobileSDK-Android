@@ -1,6 +1,6 @@
 language: android
 jdk: oraclejdk7
-sudo: false
+sudo: true
 
 branches:
    only:
@@ -48,6 +48,7 @@ before_install:
 # Create and start the emulator
 before_script:
    - echo no | android create avd --force -n test -t $ANDROID_TARGET  --abi armeabi-v7a -c 512M
+   - sudo mount -o remount,size=5G tmpfs /tmp/ -t ext4
    - emulator -avd test -data /home/travis/.android/avd/test.avd/userdata-qemu.im/userdata.img -no-skin -no-audio -no-window &
    - travis_wait 30 android-wait-for-emulator
    - adb shell input keyevent 82

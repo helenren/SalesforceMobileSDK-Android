@@ -1,0 +1,139 @@
+apply plugin: NexusPlugin
+
+/**
+ * A plugin to add Nexus repository and upload support to a project.
+ */
+class NexusPlugin implements Plugin<Project> {
+    void apply(Project project) {
+        project.plugins.apply MavenPlugin
+
+        NexusExtension extension = project.extensions.create 'nexus', NexusExtension
+
+        configureCredentials project, extension
+        configureBuildScript project, extension
+        configureUploadTasks project, extension
+    }
+
+    /**
+     * Load Nexus configuration from a properties file specified by the extension.
+     */
+    private void configureCredentials(Project project, NexusExtension extension) {
+        project.file(extension.configPath).withInputStream {
+            Properties props = new Properties()
+            props.load it
+            extension.username = props['nexus.username']
+            extension.password = props['nexus.password']
+        }
+    }
+
+    /**
+     * Add Nexus access to repository blocks in the buildscript and all projects.
+     */
+    private void configureBuildScript(Project project, NexusExtension extension) {
+        if (extension.enabled) {
+            project.buildscript.repositories {
+                mavenLocal()
+                extension.repositories.each { repoName, repoUrl ->
+                    maven {
+                        name repoName
+                        url repoUrl
+                        credentials {
+                            username extension.username
+                            password extension.password
+                        }
+                    }
+                }
+            }
+
+            project.allprojects { subproject ->
+                project.buildscript.repositories.each { subproject.repositories.addLast it }
+            }
+        }
+    }
+
+    /**
+     * Configures uploadArchives on all projects to upload to Nexus.
+     */
+    private void configureUploadTasks(Project project, NexusExtension extension) {
+       project.allprojects { subproject ->
+           subproject.tasks.replace('checkForSnapshots') << {
+              if (subproject.version.endsWith('-SNAPSHOT') && !extension.allowSnapshots) {
+                   throw new IllegalArgumentException('Uploading snapshots is not allowed')
+              }
+           }
+
+           afterEvaluate {
+               plugins.apply MavenPlugin
+
+               uploadArchives {
+                   repositories {
+                       mavenDeployer {
+                           def repo
+                           if (version.endsWith('-SNAPSHOT')) {
+                               repo = subproject.repositories.nexusSnapshots
+                           } else {
+                               repo = subproject.repositories.nexusReleases
+                           }
+
+                           repository(url: repo.url) {
+                               authentication(
+                                       userName: repo.credentials.username,
+                                       password: repo.credentials.password)
+                           }
+                       }
+                   }
+               }
+
+               subproject.tasks.uploadArchives.dependsOn subproject.tasks.checkForSnapshots
+           }
+       }
+    }
+}
+
+class NexusExtension {
+    private final Map repos = [
+            'nexusPublic': 'groups/public',
+            'nexusReleases': 'repositories/releases',
+            'nexusSnapshots': 'repositories/snapshots',
+            'nexusDaggerMock': 'repositories/DaggerMock',
+    ]
+
+    /**
+     * Whether the plugin is enabled.
+     */
+    boolean enabled = true
+
+    /**
+     * The full url of the Nexus server to connect to.
+     */
+    String nexusServer = 'https://nexus.soma.salesforce.com'
+
+    /**
+     * A file or path to the Nexus configuration file.
+     */
+    Object configPath = "${System.properties['user.home']}/Android/build.properties"
+
+    /**
+     * Nexus username.
+     */
+    String username
+
+    /**
+     * Nexus password.
+     */
+    String password
+
+    /**
+     * Allow snapshots to be uploaded.
+     */
+    boolean allowSnapshots = false
+
+    /**
+     * A map of repository names and urls.
+     */
+    Map getRepositories() {
+        repos.collectEntries { name, frag ->
+            [name, "${nexusServer}/nexus/content/${frag}"]
+        }
+    }
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*
- * Copyright (c) 2013-2015, salesforce.com, inc.
+ * Copyright (c) 2013-present, salesforce.com, inc.
  * All rights reserved.
  * Redistribution and use of this software in source and binary forms, with or
  * without modification, are permitted provided that the following conditions
@@ -42,7 +42,7 @@ var fs = require('fs');
 var cordovaHelper = require('../external/shared/node/cordovaHelper');
 var miscUtils = require('../external/shared/node/utils');
 
-var version = '4.3.0';
+var version = '5.0.0';
 var targetApi = {'versionNumber': 23, 'versionName': 'Marshmallow'};
 var minimumCordovaCliVersion = '5.4.0';
 var cordovaPlatformVersion = '5.0.0';
@@ -300,6 +300,11 @@ function createNativeOrReactNativeApp(config) {
     var salesforceSDKRelativePath = path.join('libs', 'SalesforceSDK');
     copyFromSDK(packageSdkRootDir, config.targetdir, salesforceSDKRelativePath);
 
+    // Copy SalesforceAnalytics library project into the app folder as well, if it's not already there.
+    // copy <Android Package>/libs/SalesforceAnalytics -> <App Folder>/forcedroid/libs/SalesforceAnalytics
+    var salesforceAnalyticsRelativePath = path.join('libs', 'SalesforceAnalytics');
+    copyFromSDK(packageSdkRootDir, config.targetdir, salesforceAnalyticsRelativePath);
+
     // Copy SmartStore and SmartSync library projects into the app folder as well, if it's not already there - if required.
     // copy <Android Package>/libs/SmartStore -> <App Folder>/forcedroid/libs/SmartStore
     // copy <Android Package>/libs/SmartSync -> <App Folder>/forcedroid/libs/SmartSync
@@ -422,8 +427,10 @@ function createAppRootGradleFile(config) {
     var smartSyncGradleSpec = "include 'forcedroid:libs:SmartSync'\n";
     var salesforceReactGradleSpec = "include 'forcedroid:libs:SalesforceReact'\n";
     var appGradleSpec = "include '" + config.appname + "'";
+    var salesforceAnalyticsGradleSpec = "include 'forcedroid:libs:SalesforceAnalytics'\n";
 
     var gradleSpec = salesforceSdkGradleSpec
+        + salesforceAnalyticsGradleSpec
         + (config.usesmartstore ? smartStoreGradleSpec + smartSyncGradleSpec : "")
         + (config.apptype === 'react_native' ? salesforceReactGradleSpec : "")
         + appGradleSpec;

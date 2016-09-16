@@ -26,13 +26,6 @@
  */
 package com.salesforce.samples.smartsyncexplorer.loaders;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-
 import android.content.AsyncTaskLoader;
 import android.content.Context;
 import android.content.Intent;
@@ -60,6 +53,13 @@ import com.salesforce.androidsdk.smartsync.util.SyncState.Status;
 import com.salesforce.androidsdk.smartsync.util.SyncUpTarget;
 import com.salesforce.samples.smartsyncexplorer.objects.ContactObject;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * A simple AsyncTaskLoader to load a list of Salesforce contacts.
  *
@@ -70,7 +70,7 @@ public class ContactListLoader extends AsyncTaskLoader<List<ContactObject>> {
 	public static final String CONTACT_SOUP = "contacts";
 	public static final Integer LIMIT = 10000;
 	public static final String LOAD_COMPLETE_INTENT_ACTION = "com.salesforce.samples.smartsyncexplorer.loaders.LIST_LOAD_COMPLETE";
-    private static final String TAG = "SmartSyncExplorer: ContactListLoader";
+    private static final String TAG = "ContactListLoader";
     private static IndexSpec[] CONTACTS_INDEX_SPEC = {
 		new IndexSpec("Id", Type.string),
 		new IndexSpec("FirstName", Type.string),

@@ -1,7 +1,5 @@
 buildscript {
-  repositories {
-    jcenter()
-  }
+  apply from: file(':gradle:nexus.gradle')
 
   dependencies {
     classpath 'com.android.tools.build:gradle:2.1.3'

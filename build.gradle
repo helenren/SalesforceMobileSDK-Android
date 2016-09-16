@@ -7,6 +7,7 @@ buildscript {
 }
 
 allprojects {
+  apply from: file('gradle/nexus.gradle')
   group = 'com.salesforce.androidsdk'
 
   repositories {

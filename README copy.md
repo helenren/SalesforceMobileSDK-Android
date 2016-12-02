@@ -1,4 +1,3 @@
-[![Build Status](https://forcedotcom.github.io/SalesforceMobileSDK-TestResults/Android-test-results/latest/buildstatus.svg)](https://forcedotcom.github.io/SalesforceMobileSDK-TestResults/Android-test-results/latest/index.html)
 
 # Salesforce.com Mobile SDK for Android
 

@@ -10,10 +10,6 @@ buildscript {
 
 allprojects {
   group = 'com.salesforce.androidsdk'
-  
-  plugins {
-    id 'com.github.kt3k.coveralls' version '2.7.1'
-  }
 
   repositories {
     maven {

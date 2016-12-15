@@ -1,17 +1,10 @@
-
-plugins {
-    id 'com.github.kt3k.coveralls' version '2.6.3'
-}
-
 apply plugin: 'com.android.library'
 apply plugin: 'com.github.kt3k.coveralls'
 
 dependencies {
 }
 
-coveralls {
-  jacocoReportPath = "${buildDir}/reports/coverage/debug/report.xml"
-}
+coveralls.jacocoReportPath = 'build/reports/coverage/debug/report.xml'
 
 android {
   compileSdkVersion 25

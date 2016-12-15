@@ -1,10 +1,13 @@
 
 apply plugin: 'com.android.library'
+apply plugin: 'com.github.kt3k.coveralls'
 
 dependencies {
   compile project(':libs:SalesforceSDK')
   compile 'net.zetetic:android-database-sqlcipher:3.5.2'
 }
+
+coveralls.jacocoReportPath = 'build/reports/coverage/debug/report.xml'
 
 android {
   compileSdkVersion 25

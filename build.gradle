@@ -5,6 +5,7 @@ buildscript {
 
   dependencies {
     classpath 'com.android.tools.build:gradle:2.2.2'
+    classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.7.1'
   }
 }
 
@@ -19,10 +20,4 @@ allprojects {
 
     jcenter()
   }
-}
-
-subprojects {
-	dependencies {
-            classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.7.1'
-        }
 }

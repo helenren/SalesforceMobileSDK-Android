@@ -10,7 +10,6 @@ dependencies {
 }
 
 coveralls {
-  sourceDirs = publishedProjects.sourceSets.main.allSource.srcDirs.flatten()
   jacocoReportPath = "${buildDir}/reports/coverage/debug/reports.xml"
 }
 

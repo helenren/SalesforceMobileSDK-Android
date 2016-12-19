@@ -41,6 +41,6 @@ lane :SalesforceHybrid do
     system("./grandlew :libs:SalesforceHybrid:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
 end
 
-lane :SalesforceHybrid do
+lane :NativeSampleApps do
     system("./grandlew :native:NativeSampleApps:RestExplorer:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
 end

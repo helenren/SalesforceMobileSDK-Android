@@ -6,7 +6,7 @@ lane :PR do
     gradle(
  task:":libs:SalesforceAnalytics:connectedAndroidTest :libs:SmartStore:connectedAndroidTest :libs:SmartSync:connectedAndroidTest :libs:SalesforceHybrid:connectedAndroidTest",
         flavor: "WorldDomination",
-        build_type: "Debug"
+        build_type: "Debug",
         flags: "--continue --no-daemon --profile --stacktrace"
     )
     rescue => ex

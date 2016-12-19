@@ -9,4 +9,9 @@ lane :PR do
         build_type: "Debug"
         flags: "--continue --no-daemon --profile --stacktrace"
     )
+    rescue => ex
+        UI.error(ex)
+    ensure
+        # Move test reports to one single folder
+    end
 end

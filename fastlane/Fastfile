@@ -1,0 +1,42 @@
+system("npm install shelljs@0.7.0")
+system("./install.sh")
+
+lane :all do
+	system("./grandlew :libs:SalesforceAnalytics:connectedAndroidTest :libs:SalesforceSDK:connectedAndroidTest :libs:SmartStore:connectedAndroidTest :libs:SmartSync:connectedAndroidTest :libs:SalesforceHybrid:connectedAndroidTest :native:NativeSampleApps:RestExplorer:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
+end
+
+lane :noSDK do
+system("./grandlew :libs:SalesforceAnalytics:connectedAndroidTest :libs:SmartStore:connectedAndroidTest :libs:SmartSync:connectedAndroidTest :libs:SalesforceHybrid:connectedAndroidTest :native:NativeSampleApps:RestExplorer:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
+end
+
+lane :noSmartStore do
+system("./grandlew :libs:SalesforceAnalytics:connectedAndroidTest :libs:SalesforceSDK:connectedAndroidTest :libs:SmartSync:connectedAndroidTest :libs:SalesforceHybrid:connectedAndroidTest :native:NativeSampleApps:RestExplorer:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
+end
+
+lane : SalesforceAnalytics do
+	system("./grandlew :libs:SalesforceAnalytics:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
+end
+
+lane :unitOnly do
+system("./grandlew :libs:SalesforceAnalytics:connectedAndroidTest :libs:SalesforceSDK:connectedAndroidTest :libs:SmartStore:connectedAndroidTest :libs:SmartSync:connectedAndroidTest :libs:SalesforceHybrid:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
+end
+
+lane :PR do
+system("./grandlew :libs:SalesforceAnalytics:connectedAndroidTest :libs:SmartStore:connectedAndroidTest :libs:SmartSync:connectedAndroidTest :libs:SalesforceHybrid:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
+end
+
+lane : SalesforceSDK do
+system("./grandlew :libs:SalesforceSDK:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
+end
+
+lane : SmartStore do
+system("./grandlew :libs:SmartStore:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
+
+lane : SmartSync do
+system("./grandlew :libs:SmartSync:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
+
+lane : SalesforceHybrid do
+system("./grandlew :libs:SalesforceHybrid:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
+
+lane : SalesforceHybrid do
+system("./grandlew :native:NativeSampleApps:RestExplorer:connectedAndroidTest --continue --no-daemon --profile --stacktrace")

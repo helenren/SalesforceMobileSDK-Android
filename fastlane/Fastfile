@@ -13,7 +13,7 @@ lane :noSmartStore do
 system("./grandlew :libs:SalesforceAnalytics:connectedAndroidTest :libs:SalesforceSDK:connectedAndroidTest :libs:SmartSync:connectedAndroidTest :libs:SalesforceHybrid:connectedAndroidTest :native:NativeSampleApps:RestExplorer:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
 end
 
-lane : SalesforceAnalytics do
+lane :SalesforceAnalytics do
 	system("./grandlew :libs:SalesforceAnalytics:connectedAndroidTest --continue --no-daemon --profile --stacktrace")
 end
 

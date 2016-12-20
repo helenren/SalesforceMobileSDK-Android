@@ -1,5 +1,5 @@
-system("cd .. & npm install shelljs@0.7.0")
-system("./install.sh")
+system("cd .. && npm install shelljs@0.7.0")
+system("cd .. && install.sh")
 
 lane :All do
 gradle(

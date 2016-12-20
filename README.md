@@ -7,6 +7,7 @@
 | android-24  |[![Build Status](https://forcedotcom.github.io/SalesforceMobileSDK-TestResults/Android-test-results/Android-24/dev/latest/buildstatus.svg)](https://forcedotcom.github.io/SalesforceMobileSDK-TestResults/Android-test-results/Android-24/dev/latest/index.html)|
 | android-25  |[![Build Status](https://forcedotcom.github.io/SalesforceMobileSDK-TestResults/Android-test-results/Android-25/dev/latest/buildstatus.svg)](https://forcedotcom.github.io/SalesforceMobileSDK-TestResults/Android-test-results/Android-25/dev/latest/index.html)|
 
+[![Coverage Status](https://coveralls.io/repos/github/helenren/SalesforceMobileSDK-Android/badge.svg?branch=origin%2Fdev)](https://coveralls.io/github/helenren/SalesforceMobileSDK-Android?branch=origin%2Fdev)
 # Salesforce.com Mobile SDK for Android
 
 You have arrived at the source repository for the Salesforce Mobile SDK for Android. Welcome! Starting with our 2.0 release, there are now two ways you can choose to work with the Mobile SDK:

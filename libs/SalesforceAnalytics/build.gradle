@@ -1,8 +1,10 @@
-
 apply plugin: 'com.android.library'
+apply plugin: 'com.github.kt3k.coveralls'
 
 dependencies {
 }
+
+coveralls.jacocoReportPath = 'build/reports/coverage/debug/report.xml'
 
 android {
   compileSdkVersion 25
@@ -13,6 +15,7 @@ android {
       testCoverageEnabled = true
     }
   }
+
 
   sourceSets {
     main {
